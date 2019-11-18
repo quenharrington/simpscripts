@@ -1,0 +1,67 @@
+#!/bin/bash
+#### enters the variables - the original to copy files from and the new module name
+echo "compliance suite automater"
+echo "make sure everything is in home folders"
+echo "do not have the directories downloaded already"
+echo "if good module is predownloaded, thats alright now..."
+echo "name of good source module? ex: pupmod-simp-rsyslog"
+read good
+echo "what is in the files as the name? ex: rsyslog"
+read lgood
+echo "name of new module? ex: pupmod-simp-sssd"
+read bad
+echo "what is in the files as the name? ex: sssd"
+read lbad
+#### clones the githubs to home dir
+git clone https://github.com/simp/${good}.git
+git clone https://github.com/simp/${bad}.git
+#### set paths for future use
+dgood="/home/${USER}/${good}"
+dbad="/home/${USER}/${bad}"
+echo "vars set"
+echo $dgood
+echo $dbad
+#### copy inspec profiles folder and then edit inspec.yml
+#### -n makes sed quiet
+mkdir -p ${dbad}/spec/fixtures/inspec_profiles
+cp -ar ${dgood}/spec/fixtures/inspec_profiles/* ${dbad}/spec/fixtures/inspec_profiles
+sed -i "s/${lgood}/${lbad}/g" ${dbad}/spec/fixtures/inspec_profiles/CentOS-7-disa_stig/inspec.yml
+echo "set CentOS inspec.yml to new module name"
+#### copy acceptance suites compliance, then edit 2 files
+mkdir -p ${dbad}/spec/acceptance/suites/compliance
+cp -ar ${dgood}/spec/acceptance/suites/compliance/* ${dbad}/spec/acceptance/suites/compliance
+sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/acceptance/suites/compliance/00_simp_profile_install_spec.rb
+sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/acceptance/suites/compliance/01_simp_profile_inspec_spec.rb
+echo "set 00_simp_profile_install_spec to new module name"
+#### edit file at /spec/acceptance/nodesets/default.yml
+if grep -q chef-current ${dbad}/spec/acceptance/nodesets/default.yml; then
+  echo "nodeset chef set"
+else
+  sed -i "/yum_repos:/d" ${dbad}/spec/acceptance/nodesets/default.yml
+  sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbad}/spec/acceptance/nodesets/default.yml
+echo "nodeset repos set"
+fi
+#### edit .gitignore
+sed -i "\#spec/fixtures/#d#" ${dbad}/.gitignore
+#### edit add to .gitlab-ci.yml
+if grep -q pup6-compliance: ; then
+  echo "already pup6-compliance in gitlab-ci"
+else
+  echo "pup6-compliance:" >> ${dbad}/.gitlab-ci.yml
+  echo "  <<: *pup_6" >> ${dbad}/.gitlab-ci.yml
+  echo "  <<: *compliance_base" >> ${dbad}/.gitlab-ci.yml
+  echo "  script:" >> ${dbad}/.gitlab-ci.yml
+  echo "    - 'BEAKER_fips=yes bundle exec rake beaker:suites[compliance]'" >> ${dbad}/.gitlab-ci.yml
+  echo "added pup6-compliance to gitlab-ci.yml"
+fi
+#### edit .fixtures.yml to include file
+if  grep -q disa_stig ${dbad}/.fixtures.yml; then
+  echo "fixtures_found, skipping"
+else
+sed -i "s#repositories:#repositories:\n    disa_stig-el7-baseline:\n      repo: https://github.com/simp/inspec-profile-disa_stig-el7\n      branch: master\n      target: spec/fixtures/inspec_deps/inspec_profiles/profiles#g#" ${dbad}/.fixtures.yml
+  echo "added disa_stig-el7-baseline repo to .fixtures.yml"
+fi
+#### run top to not close!
+####if nodesets_set=1; then echo "check ${dbad}/spec/acceptance/nodesets/default.yml for too many yum-repos entries"
+fi
+top
