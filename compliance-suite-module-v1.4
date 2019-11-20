@@ -33,18 +33,21 @@ cp -ar ${dgood}/spec/acceptance/suites/compliance/* ${dbad}/spec/acceptance/suit
 sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/acceptance/suites/compliance/00_simp_profile_install_spec.rb
 sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/acceptance/suites/compliance/01_simp_profile_inspec_spec.rb
 echo "set 00_simp_profile_install_spec to new module name"
+#### change spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
+sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
+echo "changed 00_Control_selector"
 #### edit file at /spec/acceptance/nodesets/default.yml
 if grep -q chef-current ${dbad}/spec/acceptance/nodesets/default.yml; then
   echo "nodeset chef set"
 else
   sed -i "/yum_repos:/d" ${dbad}/spec/acceptance/nodesets/default.yml
   sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbad}/spec/acceptance/nodesets/default.yml
-echo "nodeset repos set"
+  echo "nodeset repos set"
 fi
 #### edit .gitignore
 sed -i "\#spec/fixtures/#d#" ${dbad}/.gitignore
 #### edit add to .gitlab-ci.yml
-if grep -q pup6-compliance: ; then
+if grep -q pup6-compliance: ${dbad}/.gitlab-ci.yml; then
   echo "already pup6-compliance in gitlab-ci"
 else
   echo "pup6-compliance:" >> ${dbad}/.gitlab-ci.yml
@@ -62,6 +65,4 @@ sed -i "s#repositories:#repositories:\n    disa_stig-el7-baseline:\n      repo: 
   echo "added disa_stig-el7-baseline repo to .fixtures.yml"
 fi
 #### run top to not close!
-####if nodesets_set=1; then echo "check ${dbad}/spec/acceptance/nodesets/default.yml for too many yum-repos entries"
-fi
 top
