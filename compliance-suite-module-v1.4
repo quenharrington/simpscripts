@@ -36,12 +36,25 @@ echo "set 00_simp_profile_install_spec to new module name"
 #### change spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
 sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
 echo "changed 00_Control_selector"
-#### edit file at /spec/acceptance/nodesets/default.yml
-if grep -q chef-current ${dbad}/spec/acceptance/nodesets/default.yml; then
-  echo "nodeset chef set"
+#### edit file at /spec/acceptance/nodesets/default.yml, set to dbaddef
+dbaddef="${dbad}/spec/acceptance/nodesets/default.yml"
+if grep -q chef-current ${dbaddef}; then
+  echo "nodeset chef already set"
 else
-  sed -i "/yum_repos:/d" ${dbad}/spec/acceptance/nodesets/default.yml
-  sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbad}/spec/acceptance/nodesets/default.yml
+  if grep -q  "ENV['BEAKER_HYPERVISOR']" ${dbaddef}; then
+    echo "already env beaker hypervisor capable"
+  else
+    echo "adding hypervisor at start of default.yml"
+    sed -i "1s/^/<%\n  if ENV['BEAKER_HYPERVISOR']\n    hypervisor = ENV['BEAKER_HYPERVISOR']\n  else\n    hypervisor = 'vagrant'\n  end\n-%>\n/" ${dbaddef}
+    echo "<% if ENV['BEAKER_PUPPET_COLLECTION'] -%>" >> ${dbaddef}
+    echo "  puppet_collection: <%= ENV['BEAKER_PUPPET_COLLECTION'] %>" >> ${dbaddef}
+    echo "<% end -%>" >> ${dbaddef}
+  fi
+  if grep -q "hypervisor: vagrant" ${dbaddef}; then
+    sed -i "s/hypervisor: vagrant/hypervisor: <%= hypervisor %>/g" ${dbaddef}
+  fi
+  sed -i "/yum_repos:/d" ${dbaddef}
+  sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbaddef}
   echo "nodeset repos set"
 fi
 #### edit .gitignore
