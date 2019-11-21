@@ -40,6 +40,11 @@ echo "changed 00_Control_selector"
 if grep -q chef-current ${dbad}/spec/acceptance/nodesets/default.yml; then
   echo "nodeset chef set"
 else
+#### fixing hypervisor formatting issue on older modules
+if grep -q "hypervisor: vagrant "${dbad}/spec/acceptance/nodesets/default.yml
+    echo "older module found - please doublecheck work in nodesets/default.yml"
+    sed -i "s/hypervisor: vagrant/hypervisor: <%= hypervisor %>/g" ${dbad}/spec/acceptance/nodesets/default.yml
+fi 
   sed -i "/yum_repos:/d" ${dbad}/spec/acceptance/nodesets/default.yml
   sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbad}/spec/acceptance/nodesets/default.yml
   echo "nodeset repos set"
