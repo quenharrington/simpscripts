@@ -77,5 +77,8 @@ else
 sed -i "s#repositories:#repositories:\n    disa_stig-el7-baseline:\n      repo: https://github.com/simp/inspec-profile-disa_stig-el7\n      branch: master\n      target: spec/fixtures/inspec_deps/inspec_profiles/profiles#g#" ${dbad}/.fixtures.yml
   echo "added disa_stig-el7-baseline repo to .fixtures.yml"
 fi
-#### run top to not close!
+#### run cat to not close!
+echo ""
+echo ""
+echo "all done! press ctrl+C to leave the script"
 cat
