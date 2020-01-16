@@ -1,0 +1,99 @@
+#!/bin/bash
+#### iterates through spec testing to compliance
+#### variables homes
+outy="/home/${USER}/tseq"
+#### function homes
+## fail_check uses two inputs, test, then module
+fail_check () {
+  #### 2 is module, 1 is spec/default/compliance
+  sed -i "/${2}/d" ${outy}/!PASSED_${1}.txt
+  sed -i "/${2}/d" ${outy}/!FAILED_${1}.txt
+  if tail -15 ${outy}/${2}_${1}.txt| grep -q "0 failures"; then
+    echo ${2} >> ${outy}/!PASSED_${1}.txt
+    echo "0 failures found in ${2} during ${1}, moving on..."
+    mv ${outy}/${2}_${1}.txt ${outy}/${2}_${1}_$(date "+%Y%m%d_%H%M").txt
+  else
+    echo "${2} didn't have 0 failures during ${1}, skipping... please check logs"
+    echo ${2} >> ${outy}/!FAILED_${1}.txt
+    mv ${outy}/${2}_${1}.txt ${outy}/${2}_${1}_$(date "+%Y%m%d_%H%M").txt
+    continue
+  fi
+  echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+}
+manual_continue_check () {
+  read -p $'continue? [yn]\n' cont1
+  case $cont1 in
+    [Yy]* ) echo "continuing";;
+    [Nn]* ) echo "exiting" ; exit 1 ;;
+    * ) echo "please put yes or no"; exit 1;;
+  esac
+  echo "continued"
+}
+###auto_continue () {
+#  if [[ condition ]]; then
+#    echo ${}
+#    echo "test passed, continuing"
+#  else
+#    continue
+#  fi
+##}
+safe_exit () {
+  break
+  cat
+}
+#### This activates rvm for a subshell
+[[ -s "$HOME/.rvm/scripts/rvm" ]] && source "$HOME/.rvm/scripts/rvm"
+#### wordy intro
+echo "welcome to the test sequence"
+echo "this will only run beaker compliance  test"
+##echo "if that passes, it will run beaker:suites"
+##echo "if that passes, it will run beaker:suites[compliance]"
+echo ""
+echo "please be inside your home folder"
+#### set up ruby and bundler
+mkdir -p ${outy}
+while true; do
+  read -p $'module shorthand name? ex: rsyslog; leave blank to stop\n' mod
+  case $mod in
+    "" )  break;;
+    * ) sed -i "/${mod}/d" ${outy}/!mod_list.txt
+    echo ${mod} >> ${outy}/!mod_list.txt
+    ;;
+  esac
+done
+### delete any blank lines that snuck in
+sed -i '/^$/d' ${outy}/!mod_list.txt
+#### starts the loop
+while read -r modb; do
+  pmodb="pupmod-simp-${modb}"
+  echo ${pmodb}
+#### if not downloaded from github, download from github
+  echo /home/${USER}/${pmodb}/
+  if [[ ! -d /home/${USER}/${pmodb}/ ]]; then
+    echo "downloading the module ${modb} from github"
+    git clone https://github.com/simp/${pmodb}.git /home/$USER/${pmodb}
+  fi
+#### put output into folder and setup ruby, bundler
+  cd /home/${USER}/${pmodb}/
+  rvm use 2.4.4
+  rvm all do gem install bundler
+  bundle install
+#echo "this ${modb} is from the file, 0 failures" | tee ${outy}/${modb}_spec.txt
+ ## bundle exec rake spec | tee ${outy}/${modb}_spec.txt
+  #echo ${date} >> ${outy}/${modb}_spec.txt
+ ## fail_check spec $modb
+#### default
+#echo "this ${modb}file now says it has 0 failures in it" | tee ${outy}/${modb}_default.txt
+ ## bundle exec rake beaker:suites | tee ${outy}/${modb}_default.txt
+ ## fail_check default $modb
+#### compliance
+#echo "this ${modb}file now says it has 1 failures in it" | tee ${outy}/${modb}_compliance.txt
+  bundle exec rake beaker:suites[compliance] | tee ${outy}/${modb}_compliance.txt
+###_$(date "+%Y%m%d_%H%M")
+  fail_check compliance $modb
+  done < "${outy}/!mod_list.txt"
+  cd /home/${USER}
+  zenity --question --text="Hey it finished"
+  cat
+#bundle exec rake beaker:suites | tee ${outy}/${mod}_default.txt
+#bundle exec rake beaker:suites[compliance] | tee ${outy}/${mod}_compliance.txt

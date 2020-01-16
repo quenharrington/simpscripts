@@ -1,0 +1,38 @@
+#!/bin/bash
+#### iterates through spec testing to compliance
+#### variables homes
+#### outputs which files might contain the username that shouldn't be uploaded
+# if you are working somehwere besides the home directory, modify the line cd lines
+echo "username cleaner"
+echo "-----------------"
+echo "use this before uploading things to git"
+echo "is ${USER} your username? [y/n]"
+read cont1
+case $cont1 in
+  [Yy]* ) user=${USER};;
+  [Nn]* )
+      echo "so what is your username?"; read user ;;
+  * ) echo "bad input, quitting"; exit 1;;
+esac
+echo "what module are you cleaning before uploading?"
+echo "use the full title ex: pupmod-simp-ntpd"
+read mod
+cd /home/${user}/${mod}
+grep -ilr $user *
+echo "do you wish to clean these results?"
+echo "username will be replaced with \${USER}"
+read -p  $'continue? [y/n]\n' cont2
+case $cont2 in
+  [Yy]* ) echo "continuing...";;
+  [Nn]* ) echo "exiting" ; exit 1;;
+  * ) echo "bad input, quitting"; exit 1;;
+esac
+var="$(grep -ilr $user *)"
+echo $var
+for i in $var
+do
+sed -i "s/${user}/\${USER}/gI" $i
+#echo $i
+done
+echo "all done"
+cat

@@ -35,13 +35,13 @@ sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/acceptance/suites/compliance/01_simp
 echo "set 00_simp_profile_install_spec to new module name"
 #### change spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
 sed -i "s/${lgood}/${lbad}/gI" ${dbad}/spec/fixtures/inspec_profiles/RedHat-7-disa_stig/controls/00_Control_Selector.rb
-echo "changed 00_Control_selector"
+echo "changed 00_Control_selector in RedHat"
 #### edit file at /spec/acceptance/nodesets/default.yml, set to dbaddef
 dbaddef="${dbad}/spec/acceptance/nodesets/default.yml"
 if grep -q chef-current ${dbaddef}; then
   echo "nodeset chef already set"
 else
-  if grep -q  "ENV['BEAKER_HYPERVISOR']" ${dbaddef}; then
+  if grep -qF  "ENV['BEAKER_HYPERVISOR']" ${dbaddef}; then
     echo "already env beaker hypervisor capable"
   else
     echo "adding hypervisor at start of default.yml"
@@ -50,11 +50,14 @@ else
     echo "  puppet_collection: <%= ENV['BEAKER_PUPPET_COLLECTION'] %>" >> ${dbaddef}
     echo "<% end -%>" >> ${dbaddef}
   fi
-  if grep -q "hypervisor: vagrant" ${dbaddef}; then
+  if grep -qF "hypervisor: vagrant" ${dbaddef}; then
     sed -i "s/hypervisor: vagrant/hypervisor: <%= hypervisor %>/g" ${dbaddef}
   fi
   sed -i "/yum_repos:/d" ${dbaddef}
   sed -i "s#<%= hypervisor %>#<%= hypervisor %>\n    yum_repos:\n      chef-current:\n        baseurl: 'https://packages.chef.io/repos/yum/current/el/7/\$basearch'\n        gpgkeys:\n          - https://packages.chef.io/chef.asc#gI#" ${dbaddef}
+  #### logic to have el6 box use the correct url for 6
+
+
   echo "nodeset repos set"
 fi
 #### edit .gitignore
@@ -63,6 +66,7 @@ sed -i "\#spec/fixtures/#d#" ${dbad}/.gitignore
 if grep -q pup6-compliance: ${dbad}/.gitlab-ci.yml; then
   echo "already pup6-compliance in gitlab-ci"
 else
+  echo "" >> ${dbad}/.gitlab-ci.yml
   echo "pup6-compliance:" >> ${dbad}/.gitlab-ci.yml
   echo "  <<: *pup_6" >> ${dbad}/.gitlab-ci.yml
   echo "  <<: *compliance_base" >> ${dbad}/.gitlab-ci.yml
@@ -72,11 +76,22 @@ else
 fi
 #### edit .fixtures.yml to include file
 if  grep -q disa_stig ${dbad}/.fixtures.yml; then
-  echo "fixtures_found, skipping"
+  echo "disa_stig fixtures found, skipping"
 else
 sed -i "s#repositories:#repositories:\n    disa_stig-el7-baseline:\n      repo: https://github.com/simp/inspec-profile-disa_stig-el7\n      branch: master\n      target: spec/fixtures/inspec_deps/inspec_profiles/profiles#g#" ${dbad}/.fixtures.yml
   echo "added disa_stig-el7-baseline repo to .fixtures.yml"
 fi
+if  grep -q compliance_markup ${dbad}/.fixtures.yml; then
+  echo "fixtures compliance_markup found, skipping"
+else
+  sed -i "s#  symlinks:#    compliance_markup: https://github.com/simp/pupmod-simp-compliance_markup\n  symlinks:#g#" ${dbad}/.fixtures.yml
+# sed -i "s#repositories:#repositories:\n    compliance_markup: https://github.com/simp/pupmod-simp-compliance_markup#g#" ${dbad}/.fixtures.yml
+  echo "added compliance_markup .fixtures.yml"
+fi
+
+
+#### make a flag file
+touch ${dbad}/.comp_source_${good}_deleteme.txt
 #### run cat to not close!
 echo ""
 echo ""
