@@ -89,6 +89,7 @@ while read -r modb; do
   cd /home/${USER}/${pmodb}/
   rvm use 2.4.4
   rvm all do gem install bundler
+  bundle update
   bundle install
 #echo "this ${modb} is from the file, 0 failures" | tee ${outy}/${modb}_spec.txt
  ## bundle exec rake spec | tee ${outy}/${modb}_spec.txt
