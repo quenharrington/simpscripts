@@ -68,8 +68,8 @@ while read -r modb; do
   pmodb="pupmod-simp-${modb}"
   echo ${pmodb}
 #### if not downloaded from github, download from github
-  echo /home/${USER}/${pmodb}/
-  if [[ ! -d /home/${USER}/${pmodb}/ ]]; then
+  echo /home/${USER}/${modb}/
+  if [[ ! -d /home/${USER}/${modb}/ ]]; then
     echo "downloading the module ${modb} from github"
     git clone https://github.com/simp/${pmodb}.git /home/$USER/${pmodb}
   fi
@@ -89,8 +89,8 @@ while read -r modb; do
   fail_check default $modb
 #### compliance
 #echo "this ${modb}file now says it has 1 failures in it" | tee ${outy}/${modb}_compliance.txt
-  bundle exec rake beaker:suites[compliance] | tee ${outy}/${modb}_compliance.txt
-  fail_check compliance $modb
+#  bundle exec rake beaker:suites[compliance] | tee ${outy}/${modb}_compliance.txt
+#  fail_check compliance $modb
   done < "${outy}/!mod_list.txt"
 cd /home/${USER}
 zenity --question --text="Hey it finished"
