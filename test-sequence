@@ -50,14 +50,26 @@ echo "if that passes, it will run beaker:suites"
 echo "if that passes, it will run beaker:suites[compliance]"
 echo ""
 echo "please be inside your home folder"
-#### set up ruby and bundler
+#### set up module list in !mod_list.txt
 mkdir -p ${outy}
+echo " -----------"
+echo "your list is now..."
+cat ${outy}/!mod_list.txt
 while true; do
-  read -p $'module shorthand name? ex: rsyslog; leave blank to stop\n' mod
+  read -p $'add a module shorthand name? ex: rsyslog; -mod name to remove, leave blank to stop\n' mod
   case $mod in
     "" )  break;;
+    -* ) mod=${mod#?}
+    sed -i "/${mod}/d" ${outy}/!mod_list.txt
+    echo " -----------"
+    echo "your list is now..."
+    cat ${outy}/!mod_list.txt
+    ;;
     * ) sed -i "/${mod}/d" ${outy}/!mod_list.txt
     echo ${mod} >> ${outy}/!mod_list.txt
+    echo " -----------"
+    echo "your list is now..."
+    cat ${outy}/!mod_list.txt
     ;;
   esac
 done
